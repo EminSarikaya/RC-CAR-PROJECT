@@ -1,34 +1,34 @@
-# 🏎️ RC Araç ve Özel Kumanda Sistemi
+# 🏎️ RC Car and Custom Controller System
 
-Bu proje, iki adet STM32F103C8T6 mikrodenetleyicisi ve NRF24L01 modülleri kullanılarak geliştirilmiş, kendi özel kumandasıyla haberleşen bir uzaktan kumandalı araç sistemidir. 
+This project is a remote-controlled car system that communicates with its own custom controller, developed using two STM32F103C8T6 microcontrollers and NRF24L01 modules. 
 
-## 📝 Proje Amacı ve Özellikleri
-* **Kesintisiz İletişim:** NRF24L01 modülleri ile araba ve kumanda arasında hızlı ve güvenilir RF haberleşmesi.
-* **Özel Kumanda Tasarımı:** Standart kumandalar yerine, tamamen bu projeye özgü tasarlanmış ve programlanmış kontrolcü.
-* **Modüler Yapı:** Araba ve kumanda kodları birbirinden bağımsız olarak geliştirilebilir.
+## 📝 Project Purpose and Features
+* **Seamless Communication:** Fast and reliable RF communication between the car and the controller using NRF24L01 modules.
+* **Custom Controller Design:** A fully custom-designed and programmed controller specific to this project, replacing standard commercial transmitters.
+* **Modular Structure:** The car and controller codes are structured to be developed and updated independently of each other.
 
-## 🛠️ Kullanılan Donanımlar
-**Araba (Alıcı) Tarafı:**
-* STM32F103C8T6 (Blue Pill) Mikrodenetleyici
-* NRF24L01 2.4GHz RF Modülü
-* TB6612FNG Motor Sürücü
-* 2 Adet ULN2003A Bipolar Transistör Entegresi
-* LM2596 Voltaj Regülatörü
-* 4 Adet DC Motor
-* 4 Adet MG90S Servo Motor
-* 2 Adet VTC6 Lİtyum İyon Pil
+## 🛠️ Hardware Used
+**Car (Receiver) Side:**
+* STM32F103C8T6 (Blue Pill) Microcontroller
+* NRF24L01 2.4GHz RF Module
+* TB6612FNG Motor Driver
+* 2x ULN2003A Bipolar Transistor 
+* LM2596 Voltage Regulator
+* 4x DC Motors
+* 4x MG90S Servo Motors
+* 2x VTC6 Lithium-Ion Batteries
 
-**Kumanda (Verici) Tarafı:**
-* STM32F103C8T6 (Blue Pill) Mikrodenetleyici
-* NRF24L01 2.4GHz RF Modülü
-* 3 Adet Joystick Modülü
-* 0.96 OLED Ekran
+**Controller (Transmitter) Side:**
+* STM32F103C8T6 (Blue Pill) Microcontroller
+* NRF24L01 2.4GHz RF Module
+* 3x Joystick Modules
+* 0.96" OLED Display
 * 4x4 Keypad
-* LM2596 Voltaj Regülatörü
+* LM2596 Voltage Regulator
 
-## 🚀 Kurulum ve Kullanım
-1. Bu repoyu bilgisayarınıza klonlayın:
+## 🚀 Setup and Usage
+1. Clone this repository to your local machine:
    `git clone https://github.com/KullaniciAdin/RC-CAR-PROJECT.git`
-2. `projeAraba` klasörünü STM32CubeIDE (veya kullandığın IDE) ile açın ve araçtaki karta yükleyin.
-3. `ProjeKumanda` klasörünü açarak kumanda kartına yükleyin.
-4. Her iki sisteme de güç verin, bağlantı otomatik kurulacaktır.
+2. Open the `projeAraba` folder with STM32CubeIDE (or your preferred IDE) and flash it to the microcontroller on the car.
+3. Open the `ProjeKumanda` folder and flash it to the controller's microcontroller.
+4. Power up both systems; the RF connection will be established automatically.
