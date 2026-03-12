@@ -30,8 +30,7 @@ This project is a remote-controlled car system that communicates with its own cu
 #### Controller Side Block Scheme
 ![Controller Part Block Scheme](Images/Controller%20Part%20Block%20Scheme.png)
 
-#### RC Car Side Block Scheme
-![RC Car Part Block Scheme](Images/RC%20Car%20Par%20Block%20Scheme.png)
+
 
 ## 🚀 Setup and Usage
 1. Clone this repository to your local machine:
