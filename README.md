@@ -26,6 +26,13 @@ This project is a remote-controlled car system that communicates with its own cu
 * 4x4 Keypad
 * LM2596 Voltage Regulator
 
+### System Block Diagrams
+#### Controller Side Block Scheme
+![Controller Part Block Scheme](gorseller/kumanda_blok_sema.png)
+
+#### RC Car Side Block Scheme
+![RC Car Part Block Scheme](gorseller/araba_blok_sema.png) 
+
 ## 🚀 Setup and Usage
 1. Clone this repository to your local machine:
    `git clone https://github.com/KullaniciAdin/RC-CAR-PROJECT.git`
