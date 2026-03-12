@@ -1,0 +1,17 @@
+# Derleme ve Çıktı Klasörleri
+Debug/
+Release/
+
+# Derleyici Çıktıları
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.su
+*.list
+
+# IDE Geçmiş Dosyaları
+.mxproject
+*.bak
+*.tmp
