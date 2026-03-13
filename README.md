@@ -35,7 +35,7 @@ This project is a remote-controlled car system that communicates with its own cu
 
 ## 🚀 Setup and Usage
 1. Clone this repository to your local machine:
-   `git clone https://github.com/KullaniciAdin/RC-CAR-PROJECT.git`
+   `git clone https://github.com/EminSarikaya/RC-CAR-PROJECT.git`
 2. Open the `projeAraba` folder with STM32CubeIDE (or your preferred IDE) and flash it to the microcontroller on the car.
 3. Open the `ProjeKumanda` folder and flash it to the controller's microcontroller.
 4. Power up both systems; the RF connection will be established automatically.
