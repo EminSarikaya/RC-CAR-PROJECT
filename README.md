@@ -17,6 +17,13 @@ This project is a remote-controlled car system that communicates with its own cu
 * 4x DC Motors
 * 4x MG90S Servo Motors
 * 2x VTC6 Lithium-Ion Batteries
+* 20x LED with 330 ohm resistors
+* 1000uF Capacitor
+* 100uF Capacitor
+* 4.7k ohm Resistor
+* 10k ohm Resistor
+* Jumper Cables
+* Breadboard
 
 **Controller (Transmitter) Side:**
 * STM32F103C8T6 (Blue Pill) Microcontroller
@@ -25,6 +32,11 @@ This project is a remote-controlled car system that communicates with its own cu
 * 0.96" OLED Display
 * 4x4 Keypad
 * LM2596 Voltage Regulator
+* 4.7k ohm Resistor
+* 10k ohm Resistor
+* Jumper Cables
+* Breadboard
+* 100uF Capacitor
 
 ### System Block Diagrams
 #### Controller Side Block Scheme
