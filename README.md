@@ -8,7 +8,7 @@ This project is a remote-controlled car system that communicates with its own cu
 * **Modular Structure:** The car and controller codes are structured to be developed and updated independently of each other.
 
 ## 🛠️ Hardware Used
-**Car (Receiver) Side:**
+**RC Car Side:**
 * STM32F103C8T6 (Blue Pill) Microcontroller
 * NRF24L01 2.4GHz RF Module
 * TB6612FNG Motor Driver
@@ -25,7 +25,7 @@ This project is a remote-controlled car system that communicates with its own cu
 * Jumper Cables
 * Breadboard
 
-**Controller (Transmitter) Side:**
+**Controller Side:**
 * STM32F103C8T6 (Blue Pill) Microcontroller
 * NRF24L01 2.4GHz RF Module
 * 3x Joystick Modules
