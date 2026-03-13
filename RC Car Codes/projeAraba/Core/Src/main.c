@@ -73,6 +73,13 @@ KumandaVerisi gelenPaket;
 uint8_t RxAddress[] = { 0xEE, 0xDD, 0xCC, 0xBB, 0xAA };
 uint32_t sonSinyalZamani = 0;
 
+typedef struct {
+	float aracPili;
+} TelemetriVerisi;
+
+TelemetriVerisi gidenTelemetri;
+uint8_t TxAddress[] = { 0xEE, 0xDD, 0xCC, 0xBB, 0xAA };
+
 //SÜSPANSİYON HAFIZA DEĞİŞKENLERİ:
 int pwmOnHafiza = 150;
 int pwmArkaHafiza = 150;
@@ -167,163 +174,150 @@ int main(void) {
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
+	uint32_t sonTelemetriZamani = 0;
+
 	while (1) {
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
 
-		if (nrf24_data_available()) {
+				//KUMANDADAN GELEN VERİLERİN DİNLENDİĞİ KISMIN KODLARI:
+				if (nrf24_data_available()) {
 
-			//NRF24'ÜN ANLIK DURUMUNU KONTROL EDEREK KİTLENME DURUMLARINDA KORUMA MODUNA GEÇİRMEYE YARAYAN DEĞİŞKEN:
-			uint8_t nrfDurum = nrf24_r_status();
+					//NRF24'ÜN ANLIK DURUMUNU KONTROL EDEN DEĞİŞKEN:
+					uint8_t nrfDurum = nrf24_r_status();
 
-			//ÇİPİN MANTIKLI DEĞERLER ÜRETTİĞİ ZAMAN VERİLERİN İŞLENDİĞİ KISMIN KODLARI:
-			if (nrfDurum != 0x00 && nrfDurum != 0xFF) {
+					//ÇİPİN MANTIKLI DEĞERLER ÜRETTİĞİ ZAMAN İŞLENDİĞİ KISIM:
+					if (nrfDurum != 0x00 && nrfDurum != 0xFF) {
 
-				nrf24_receive((uint8_t*) &gelenPaket, sizeof(KumandaVerisi));
+						nrf24_receive((uint8_t*) &gelenPaket, sizeof(KumandaVerisi));
 
-				//GELEN PAKETİN GÜVENLİK KODU 0x55 İSE İŞLEME GİREN KISMIN KODLARI:
-				if (gelenPaket.guvenlikKodu == 0x55) {
+						//GELEN PAKETİN GÜVENLİK KODU 0x55 İSE İŞLEME GİREN KISIM:
+						if (gelenPaket.guvenlikKodu == 0x55) {
 
-					sonSinyalZamani = HAL_GetTick();
-					HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+							sonSinyalZamani = HAL_GetTick();
+							HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-					//DİFERANSİYEL SÜRÜŞ HESAPLAMASI (TANK MODU) KISMININ KODLARI:
-					int16_t solMotorHiz = gelenPaket.ileriGeri
-							+ gelenPaket.sagSol;
-					int16_t sagMotorHiz = gelenPaket.ileriGeri
-							- gelenPaket.sagSol;
+							//DİFERANSİYEL SÜRÜŞ HESAPLAMASI:
+							int16_t solMotorHiz = gelenPaket.ileriGeri + gelenPaket.sagSol;
+							int16_t sagMotorHiz = gelenPaket.ileriGeri - gelenPaket.sagSol;
 
-					//MOTOR UYANMA EŞİĞİ VE TEMBEL MOTOR KALİBRASYONU KISMININ KODLARI:
-					int16_t uyanmaEsigi = 50;
+							//MOTOR UYANMA EŞİĞİ:
+							int16_t uyanmaEsigi = 50;
 
-					// SOL MOTOR İÇİN MİNİMUM GÜÇ BAŞLATMA NOKTASU:
-					if(solMotorHiz > 0) solMotorHiz += uyanmaEsigi;
-					else if(solMotorHiz < 0) solMotorHiz -= uyanmaEsigi;
+							if(solMotorHiz > 0) solMotorHiz += uyanmaEsigi;
+							else if(solMotorHiz < 0) solMotorHiz -= uyanmaEsigi;
 
-					// SAĞ MOTOR İÇİN MİNİMUM GÜÇ BAŞLATMA NOKTASI:
-					if(sagMotorHiz > 0) sagMotorHiz += uyanmaEsigi;
-					else if(sagMotorHiz < 0) sagMotorHiz -= uyanmaEsigi;
+							if(sagMotorHiz > 0) sagMotorHiz += uyanmaEsigi;
+							else if(sagMotorHiz < 0) sagMotorHiz -= uyanmaEsigi;
 
+							//HIZ SINIRI:
+							int16_t hizSiniri=220;
 
-					//HIZ DEĞERLERİNİN PWM SINIRLARINA GÖRE AYARLANDIĞI KISMIN KODLARI:
-					int16_t hizSiniri=220;
+							if (solMotorHiz > hizSiniri) solMotorHiz = hizSiniri;
+							if (solMotorHiz < -hizSiniri) solMotorHiz = -hizSiniri;
+							if (sagMotorHiz > hizSiniri) sagMotorHiz = hizSiniri;
+							if (sagMotorHiz < -hizSiniri) sagMotorHiz = -hizSiniri;
 
-					if (solMotorHiz > hizSiniri) {
-						solMotorHiz = hizSiniri;
-					}
-					if (solMotorHiz < -hizSiniri) {
-						solMotorHiz = -hizSiniri;
-					}
-					if (sagMotorHiz > hizSiniri) {
-						sagMotorHiz = hizSiniri;
-					}
-					if (sagMotorHiz < -hizSiniri) {
-						sagMotorHiz = -hizSiniri;
-					}
+							//SOL MOTOR:
+							if (solMotorHiz > 0) {
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_ILERI_Pin, GPIO_PIN_SET);
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_GERI_Pin, GPIO_PIN_RESET);
+								__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, solMotorHiz);
+							} else if (solMotorHiz < 0) {
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_ILERI_Pin, GPIO_PIN_RESET);
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_GERI_Pin, GPIO_PIN_SET);
+								__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, -solMotorHiz);
+							} else {
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_ILERI_Pin, GPIO_PIN_RESET);
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_GERI_Pin, GPIO_PIN_RESET);
+								__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+							}
 
-					//SOL MOTORUN YÖN VE GÜÇ KONTROLÜ KISMININ KODLARI:
-					if (solMotorHiz > 0) {
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_ILERI_Pin,
-								GPIO_PIN_SET);
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_GERI_Pin,
-								GPIO_PIN_RESET);
-						__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,
-								solMotorHiz);
-					} else if (solMotorHiz < 0) {
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_ILERI_Pin,
-								GPIO_PIN_RESET);
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_GERI_Pin,
-								GPIO_PIN_SET);
-						__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,
-								-solMotorHiz);
-					} else {
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_ILERI_Pin,
-								GPIO_PIN_RESET);
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SOL_GERI_Pin,
-								GPIO_PIN_RESET);
-						__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-					}
-
-					//SAĞ MOTORUN YÖN VE GÜÇ KONTROLÜ KISMININ KODLARI:
-					if (sagMotorHiz > 0) {
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_ILERI_Pin,
-								GPIO_PIN_SET);
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_GERI_Pin,
-								GPIO_PIN_RESET);
-						__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,
-								sagMotorHiz);
-					} else if (sagMotorHiz < 0) {
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_ILERI_Pin,
-								GPIO_PIN_RESET);
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_GERI_Pin,
-								GPIO_PIN_SET);
-						__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,
-								-sagMotorHiz);
-					} else {
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_ILERI_Pin,
-								GPIO_PIN_RESET);
-						HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_GERI_Pin,
-								GPIO_PIN_RESET);
-						__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+							//SAĞ MOTOR:
+							if (sagMotorHiz > 0) {
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_ILERI_Pin, GPIO_PIN_SET);
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_GERI_Pin, GPIO_PIN_RESET);
+								__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, sagMotorHiz);
+							} else if (sagMotorHiz < 0) {
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_ILERI_Pin, GPIO_PIN_RESET);
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_GERI_Pin, GPIO_PIN_SET);
+								__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, -sagMotorHiz);
+							} else {
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_ILERI_Pin, GPIO_PIN_RESET);
+								HAL_GPIO_WritePin(GPIOB, MOTOR_SAG_GERI_Pin, GPIO_PIN_RESET);
+								__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+							}
+						}
 					}
 				}
-			}
-		}
 
-		//KUMANDADAN VERİ GELMEDİĞİNDE ARACIN KORUMA MODUNA ALINDIĞI KISMIN KODLARI:
-		if ((HAL_GetTick() - sonSinyalZamani) > 300) {
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-			HAL_GPIO_WritePin(GPIOB,
-					MOTOR_SOL_ILERI_Pin | MOTOR_SOL_GERI_Pin
-							| MOTOR_SAG_ILERI_Pin | MOTOR_SAG_GERI_Pin,
-					GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+				//ARAÇ PİLİNİN VOLTAJ DEĞERİNİN SANİYEDE 1 KERE OLMAK ÜZERE GÖNDERİLDİĞİ KISMIN KODLARI:
 
-			//BAĞLANTI KOPARSA IŞIKLARIN SÖNDÜRÜLDÜĞÜ KISMIN KODLARI:
-			for (int i = 0; i < 9; i++) {
-				gelenPaket.isikDurumlari[i] = 0;
-			}
+				if ((HAL_GetTick() - sonTelemetriZamani) > 1000) {
 
-			//SERVOLARIN KORUMA MODUNA ALINDIĞI KISMIN KODLARI:
+					//PİL DEĞERİNİN OKUNDUĞU KISMIN KODLARI:
+					HAL_ADC_Start(&hadc1);
+					if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK) {
+						uint32_t adc_deger = HAL_ADC_GetValue(&hadc1);
+						gidenTelemetri.aracPili = (adc_deger * 3.3f * (14.7f / 4.7f)) / 4095.0f;
 
-			pwmOnHafiza = 150;
-			pwmArkaHafiza = 150;
-			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwmOnHafiza);
-			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwmArkaHafiza);
+						//HABERLEŞME MODUNUN DEĞİŞTİRİLİP ALICI MODDAN VERİCİ MODA GEÇİLDİĞİ KISMIN KODLARI:
+						nrf24_stop_listen();
+						nrf24_pipe_pld_size(0, sizeof(TelemetriVerisi));
+						nrf24_open_tx_pipe(RxAddress);
 
-		}
+						//PİL VOLTAJ DEĞERİNİN GÖNDERİLDİĞİ KISMIN KODU:
+						nrf24_transmit((uint8_t*)&gidenTelemetri, sizeof(TelemetriVerisi));
 
-		//AMORTİSÖR / SERVO KONTROLLERİNİN YAPILDIĞI KISMIN KODU:
+						//PİL DEĞERİ GÖNDERİLDİKTEN SONRA HIZLICA TEKRARDAN ALICI MODA GEÇİLEN KISMIN KODLARI:
+						nrf24_pipe_pld_size(0, sizeof(KumandaVerisi));
+						nrf24_open_rx_pipe(0, RxAddress);
+						nrf24_listen();
+					}
+					sonTelemetriZamani = HAL_GetTick();
+				}
 
-		//GÜVENLİK AMAÇLI AMORTİSÖRLERE KİLİT MANTIĞININ UYGULANDIĞI KISMIN KODLARI:
-		uint8_t amortisorKilitAcik = (gelenPaket.ekstraButonlar & (1 << 2));
-        uint8_t amortisorAciSiniri = 20;
-		if (amortisorKilitAcik) {
+				//İLETİŞİM KESİLDİĞİ VAKİT KORUMA MODUNA GEÇİLEN KISMIN KODLARI:
+				if ((HAL_GetTick() - sonSinyalZamani) > 300) {
+					__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+					__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+					HAL_GPIO_WritePin(GPIOB,
+							MOTOR_SOL_ILERI_Pin | MOTOR_SOL_GERI_Pin
+									| MOTOR_SAG_ILERI_Pin | MOTOR_SAG_GERI_Pin,
+							GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 
-			// 150 MERKEZ NOKTASINA +/- 33 BİRİM EKLENEREK +/- 60 DERECE AÇI ELDE EDİLEN KISMIN KODLARI:
-			pwmOnHafiza = 150 + ((gelenPaket.onAmortisor * amortisorAciSiniri) / 255);
-			pwmArkaHafiza = 150 + ((gelenPaket.arkaAmortisor * amortisorAciSiniri) / 255);
+					for (int i = 0; i < 9; i++) {
+						gelenPaket.isikDurumlari[i] = 0;
+					}
 
-			//+/- 60 DERECENİN DIŞINA ÇIKILMASININ ENGELLENDİĞİ KISMIN KODLARI:
-			if (pwmOnHafiza > 150+amortisorAciSiniri)
-				pwmOnHafiza = 150+amortisorAciSiniri;
-			if (pwmOnHafiza < 150-amortisorAciSiniri)
-				pwmOnHafiza = 150-amortisorAciSiniri;
-			if (pwmArkaHafiza > 150+amortisorAciSiniri)
-				pwmArkaHafiza = 150+amortisorAciSiniri;
-			if (pwmArkaHafiza < 150-amortisorAciSiniri)
-				pwmArkaHafiza = 150-amortisorAciSiniri;
-		}
+					pwmOnHafiza = 150;
+					pwmArkaHafiza = 150;
+					__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwmOnHafiza);
+					__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwmArkaHafiza);
+				}
 
-		//HAFIZADAKİ DEĞERLERİN SERVOYA GÖNDERİLDİĞİ KISMIN KODLARI:
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwmOnHafiza);
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwmArkaHafiza);
+				//SERVO KONTROLLERİNİN YAPILDIĞI KISMIN KODLARI:
+				uint8_t amortisorKilitAcik = (gelenPaket.ekstraButonlar & (1 << 2));
+				uint8_t amortisorAciSiniri = 20;
 
-		HAL_Delay(10);
-		//SİSTEM KİLİTLENDİĞİ VAKİT ARACIN GÜCÜNÜ KESECEK OLAN KISMIN KODU:
-		HAL_IWDG_Refresh(&hiwdg);
+				if (amortisorKilitAcik) {
+					pwmOnHafiza = 150 + ((gelenPaket.onAmortisor * amortisorAciSiniri) / 255);
+					pwmArkaHafiza = 150 + ((gelenPaket.arkaAmortisor * amortisorAciSiniri) / 255);
+
+					if (pwmOnHafiza > 150+amortisorAciSiniri) pwmOnHafiza = 150+amortisorAciSiniri;
+					if (pwmOnHafiza < 150-amortisorAciSiniri) pwmOnHafiza = 150-amortisorAciSiniri;
+					if (pwmArkaHafiza > 150+amortisorAciSiniri) pwmArkaHafiza = 150+amortisorAciSiniri;
+					if (pwmArkaHafiza < 150-amortisorAciSiniri) pwmArkaHafiza = 150-amortisorAciSiniri;
+				}
+
+				__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwmOnHafiza);
+				__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwmArkaHafiza);
+
+				HAL_Delay(10);
+				HAL_IWDG_Refresh(&hiwdg);
+
 	}
 	/* USER CODE END 3 */
 }
@@ -775,7 +769,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		uint8_t amerikanParkAcik = (gelenPaket.ekstraButonlar & (1 << 4));
 
 		//ÖN FAR KISMININ KODU:
-
 		if(gelenPaket.isikDurumlari[0] && (pwmSayaci < gelenPaket.isikParlaklik[0]))
 			HAL_GPIO_WritePin(ON_FAR_GPIO_Port, ON_FAR_Pin, GPIO_PIN_SET);
 		else

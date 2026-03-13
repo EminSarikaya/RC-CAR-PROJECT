@@ -101,9 +101,11 @@ char *aydinlatmaIsimleri[9] = {
     "4.Sol Sinyal", "5.Ic Ambiyans", "6.Bagaj Amb.",
     "7.Arka Stop", "8.Arac Alti", "9.Geri Vites"
 };
+
 uint8_t aydinlatmaSeciliSatir = 0;
 uint8_t ekranUstLimit = 0;
 uint8_t amerikanParkDurumu = 0;
+
 //AYDINLATMA MENÜSÜ ÇAKAR MODU DEĞİŞKENLERİ:
 uint8_t cakarModuAktif = 0;
 uint32_t cakarZamanlayici = 0;
@@ -114,7 +116,7 @@ uint8_t parkSensoru=0;
 
 //NRF24L01 HABERLEŞME DEĞİŞKENLERİ:
 typedef struct __attribute__((packed)) {
-    uint8_t guvenlikKodu;      // 1 Byte (Hayalet Koruması)
+    uint8_t guvenlikKodu;      // 1 Byte
     int16_t ileriGeri;         // 2 Byte
     int16_t sagSol;            // 2 Byte
     int16_t onAmortisor;       // 2 Byte
@@ -122,12 +124,12 @@ typedef struct __attribute__((packed)) {
     uint8_t isikDurumlari[9];  // 9 Byte
     uint8_t isikParlaklik[9];  // 9 Byte
     uint8_t ekstraButonlar;    // 1 Byte
-    uint8_t bosluk[4];         // 4 Byte (Paketi 32 Byte'a tamamlar)
+    uint8_t bosluk[4];         // 4 Byte
 } KumandaVerisi;
 
 KumandaVerisi gidenPaket;
 
-// ARAÇTAN GELECEK OLAN TELEMETRİ VERİSİ KISMININ KODLARU:
+//ARAÇTAN GELECEK OLAN TELEMETRİ VERİSİ KISMININ KODLARI:
 typedef struct {
     float aracPili;
 } TelemetriVerisi;
@@ -229,7 +231,7 @@ int main(void)
 	  //TUŞ KONTROLLERİ VE MENÜ GEZİNTİSİ KISMININ KODU:
 	  if(islemBekleyenTus != 0) {
 
-	              //AYAR MODUNDA DEĞİLKEN SAYFALAR ARASI GEÇİŞİ SAĞLAYAN KOD:
+	              //AYAR MODUNDA DEĞİŞKEN SAYFALAR ARASI GEÇİŞİ SAĞLAYAN KOD:
 	              if(ayarModu == 0) {
 
 	                  //SAYFALAR ARASI GEÇİŞ KODU:
@@ -369,9 +371,7 @@ int main(void)
 	        //OLED EKRAN ÇİZİMİ KODLARI:
 	        ssd1306_Fill(Black);
 
-	        // ==========================================================
-	        	        // 1. ADIM: GÖNDERİLECEK VERİ PAKETİNİN HAZIRLANMASI
-	        	        // ==========================================================
+	        	        //GÖNDERİLECEK VERİ PAKETİNİN HAZIRLANDIĞI KISMIN KODLARI:
 	                    gidenPaket.guvenlikKodu = 0x55;
 	                    gidenPaket.ileriGeri = ileriGeriDonusum;
 	        	        gidenPaket.sagSol = sagSolDonusum;
@@ -383,25 +383,26 @@ int main(void)
 	        	        	gidenPaket.isikParlaklik[i] = aydinlatmaDegerleri[i];
 	        	        }
 
-	        	        //JOYSTICKLERİN BUTONLARINI VE PARK SENSÖRÜ BUTONUNU TEK BİT İÇERİSİNE SIKIŞTIRMA:
+	        	        //JOYSTICKLERİN BUTONLARINI VE PARK SENSÖRÜ BUTONUNU TEK BİT İÇERİSİNE SIKIŞTIRMA KISMININ KODLARI:
 	        	        gidenPaket.ekstraButonlar = (solButonGuncel) |
 	        	        		(sagButonGuncel << 1) |
 	        					(amortisorButonGuncel << 2) |
 	        					(parkSensoru << 3) |
 	        					(amerikanParkDurumu << 4);
 
-	        	        // ==========================================================
-	        	        // 2. ADIM: NRF24 İLETİŞİMİ VE TELEMETRİ OKUMA (TEK SEFER!)
-	        	        // ==========================================================
-	        	        // SİNYAL GÜCÜNÜN DİNAMİK BİR ŞEKİLDE EKRANA YAZDIRILDIĞI KISMIN KODU:
+	        	        //NRF24 HALF-DUPLEX İLETİŞİM GERÇEKLEŞTİĞİ KISMIN KODLARI:
+
+	        	        //ÖNCE SÜRÜŞ VERİSİNİN GÖNDERİLDİĞİ KISMIN KODLARI:
+	        	        nrf24_stop_listen();
+	        	        nrf24_pipe_pld_size(0, sizeof(KumandaVerisi));
+	        	        nrf24_open_tx_pipe(TxAddress);
+
 	        	        uint8_t hamStatus = nrf24_transmit((uint8_t *)&gidenPaket, sizeof(KumandaVerisi));
 
-	        	        // Eğer 5. Bit (TX_DS) 1 ise işlem başarıyla ulaştı demektir
 	        	        if (hamStatus & (1 << 5)) {
 	        	        	kayipPaketSayaci = 0;
 	        	        	sinyalSeviyesi = 4;
-
-	        	        	        	        } else {
+	        	        } else {
 	        	        	kayipPaketSayaci++;
 
 	        	        	if(kayipPaketSayaci > 2)  sinyalSeviyesi = 3;
@@ -413,9 +414,20 @@ int main(void)
 	        	        	}
 	        	        }
 
-	        	        // ==========================================================
-	        	        // 3. ADIM: OLED EKRAN ÇİZİMİ (EN GÜNCEL VERİLERLE)
-	        	        // ==========================================================
+	        	        //SONRASINDA HEMEN ARAÇTAN GELECEK PİL VERİSİNİN DİNLENDİĞİ KISMIN KODLARI:
+	        	        nrf24_pipe_pld_size(0, sizeof(TelemetriVerisi));
+	        	        nrf24_open_rx_pipe(0, TxAddress);
+	        	        nrf24_listen();
+
+	        	        //ARACIN VERİYİ İŞLEYİP GÖNDERMESİ İÇİN GEREKEN DİNLENME SÜRESİ:
+	        	        HAL_Delay(10);
+
+	        	        //ARAÇTAN GELEN PİL VERİSİNİN HAFIZAYA KAYDEDİLDİĞİ KISMIN KODU:
+	        	        if (nrf24_data_available()) {
+	        	        	nrf24_receive((uint8_t *)&gelenTelemetri, sizeof(TelemetriVerisi));
+	        	        }
+
+	        	        //OLED EKRAN ÇİZİMİNİN GERÇEKLEŞTİRİLDİĞİ KISMIN KODLARI:
 	        	        ssd1306_Fill(Black);
 
 	        	        switch(aktifSayfa) {
@@ -425,17 +437,23 @@ int main(void)
 	        	                      ssd1306_WriteString("4X4 BY EMIN DESIGN", Font_7x10, White);
 	        	                      ssd1306_Line(0, 15, 128, 15, White);
 
-	        	                      // Kumanda Pili
+	        	                      //KUMANDA PİL DEĞERLERİ:
 	        	                      char voltajYazisi[20];
 	        	                      sprintf(voltajYazisi, "K.Pil:%.1fV", bataryaVoltaji);
 	        	                      ssd1306_SetCursor(48, 18);
 	        	                      ssd1306_WriteString(voltajYazisi, Font_7x10, White);
 
-	        	                      // Araç Pili (Telemetri Kapalı - Klon Koruması)
+	        	                      //ARAÇ PİL DEĞERLERİ:
+	        	                      char aracPilMetni[15];
+	        	                      if(sinyalSeviyesi == 0) {
+	        	                    	  sprintf(aracPilMetni, "A.Pil: --- ");
+	        	                      } else {
+	        	                    	  sprintf(aracPilMetni, "A.Pil:%.1fV", gelenTelemetri.aracPili);
+	        	                      }
 	        	                      ssd1306_SetCursor(48, 34);
-	        	                      ssd1306_WriteString("A.Pil: KPL", Font_7x10, White);
+	        	                      ssd1306_WriteString(aracPilMetni, Font_7x10, White);
 
-	        	                      // Dinamik Sinyal Çubukları
+	        	                      //DİNAMİK SİNYAL ÇUBUKLARI KISMININ KODLARI:
 	        	                      ssd1306_SetCursor(0, 18);
 	        	                      ssd1306_WriteString("SINYAL", Font_7x10, White);
 
@@ -451,7 +469,7 @@ int main(void)
 
 	        	                      ssd1306_Line(44, 15, 44, 50, White);
 
-	        	                      // Alt Bilgi Mesajı
+	        	                      //ALT BİLGİ METNİ KISMININ KODLARI:
 	        	                      ssd1306_Line(0, 51, 128, 51, White);
 	        	                      ssd1306_SetCursor(0, 54);
 	        	                      ssd1306_WriteString(altBilgiMesaji, Font_7x10, White);
@@ -522,10 +540,10 @@ int main(void)
 	        	                          ssd1306_WriteString(parlaklikYazisi, Font_7x10, White);
 	        	                      }
 	        	                      break;
-	        	        } // Switch bitişi
+	        	        }
 
 	        	        ssd1306_UpdateScreen();
-	        	        HAL_Delay(50);
+	        	        HAL_Delay(40);
   }
   /* USER CODE END 3 */
 }
@@ -902,14 +920,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if(htim->Instance == TIM2)
     {
-    	// HAM DEĞERLERİN İŞLENDİĞİ KISMIN KODLARI:
+    	//HAM DEĞERLERİN İŞLENDİĞİ KISMIN KODLARI:
         ileriGeriDonusum = donusumFonksiyonu(adc_degerleri[0], 50, 4045, -255, 255);
         sagSolDonusum = donusumFonksiyonu(adc_degerleri[1], 50, 4045, -255, 255);
         onAmortisorDonusum = donusumFonksiyonu(adc_degerleri[2], 50, 4045, -255, 255);
         arkaAmortisorDonusum = donusumFonksiyonu(adc_degerleri[3], 50, 4045, -255, 255);
         bataryaVoltaji = (adc_degerleri[4] * 3.3f * (14.7f / 4.7f)) / 4095.0f;
 
-        // ÜST ÖLÜ BÖLGENİN SIFIRLANDIĞI KISMIN KODLARI:
+        //ÜST ÖLÜ BÖLGENİN SIFIRLANDIĞI KISMIN KODLARI:
         if(ileriGeriDonusum > 255) {
             ileriGeriDonusum = 255;
         }
@@ -938,7 +956,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             arkaAmortisorDonusum = -255;
         }
 
-        // ALT ÖLÜ BÖLGENİN SIFIRLANDIĞI KISMIN KODLARI:
+        //ALT ÖLÜ BÖLGENİN SIFIRLANDIĞI KISMIN KODLARI:
         if(ileriGeriDonusum > -20 && ileriGeriDonusum < 20) {
         	ileriGeriDonusum = 0;
         }
@@ -952,7 +970,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         	arkaAmortisorDonusum = 0;
         }
 
-        // JOYSTICK BUTONLARININ OKUNDUĞU KISMIN KODLARI:
+        //JOYSTICK BUTONLARININ OKUNDUĞU KISMIN KODLARI:
         uint8_t anlikOkuma;
 
         anlikOkuma = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3);
@@ -1017,7 +1035,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
                 if(basilanTus != 0 && basilanTusEski == 0) {
                 	keypadBasiliButon[basilanTus] = !keypadBasiliButon[basilanTus];
 
-                	islemBekleyenTus = basilanTus; // YENİ: OLED Menü için anlık tuşu yakala
+                	islemBekleyenTus = basilanTus;
                 }
 
                 basilanTusEski = basilanTus;
